@@ -1,0 +1,9 @@
+## Interface: 120000
+## Title: Avoid Interface - Target EasyFrame
+## Notes: Einfacher Unitframe für Partyframes
+## Category: Avoid Interface
+## Author: Knochenbrecher
+## Version: 1.3.3.7
+## RequiredDeps: Avoid_Interface_Core
+
+Avoid_Interface_Target_EasyFrame.lua

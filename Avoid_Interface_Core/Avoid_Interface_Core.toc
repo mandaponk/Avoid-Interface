@@ -1,0 +1,14 @@
+## Interface: 120000
+## Title: Avoid Interface - Core
+## Notes: Core-Logik und Konfigurationsoberfläche für Avoid Interface
+## Category: Avoid Interface
+## Version: 1.3.3.7
+## Author: Knochenbrecher
+## SavedVariables: AI_Config
+
+# Core-Logik
+Avoid_Interface_Core.lua
+
+# Config UI (Tabs, Slider, etc.)
+UI\Avoid_Interface_ConfigUI.lua
+
