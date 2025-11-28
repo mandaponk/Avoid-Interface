@@ -42,6 +42,21 @@ AI_EnsureModuleDefaults()
 AI = AI or {}
 AI.modules = AI.modules or {}
 
+-- NEU: Config-UI Registry
+AI.ConfigUI = AI.ConfigUI or {}
+AI.ConfigUI.pages = AI.ConfigUI.pages or {}
+
+function AI.ConfigUI.RegisterPage(key, label, order, buildFunc)
+    if not key or type(buildFunc) ~= "function" then return end
+    AI.ConfigUI.pages[key] = {
+        key       = key,
+        label     = label or key,
+        order     = order or 100,
+        buildFunc = buildFunc,
+    }
+end
+
+
 -------------------------------------------------
 -- Modul-Registrierung
 -------------------------------------------------

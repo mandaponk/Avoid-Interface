@@ -1,8 +1,8 @@
--- Avoid_Interface_Target_EasyFrame.lua
--- EasyFrame für "target" – ersetzt den Blizzard TargetFrame optisch
+-- Avoid_Interface_targettarget_EasyFrame.lua
+-- EasyFrame für "targettarget" – ersetzt den Blizzard targettargetFrame optisch
 
 local M    = {}
-local unit = "target"
+local unit = "targettarget"
 
 local frame
 local eventFrame
@@ -86,8 +86,8 @@ local function GetDebuffInfo(unit, index)
 end
 
 
--- Vorgefertigte Layout-Presets für den Target-Frame
-local TARGET_PRESETS = {
+-- Vorgefertigte Layout-Presets für den targettarget-Frame
+local targettarget_PRESETS = {
     ["Standard"] = {
         width  = 260,
         height = 52,
@@ -179,23 +179,23 @@ local function ApplyPresetToConfig(cfg, preset)
 end
 
 function M.GetPresets()
-    return TARGET_PRESETS
+    return targettarget_PRESETS
 end
 
 -------------------------------------------------
 -- CONFIG
 -------------------------------------------------
-local function GetTargetConfig()
+local function GettargettargetConfig()
     AI_Config = AI_Config or {}
     AI_Config.modules = AI_Config.modules or {}
 
-    local entry = AI_Config.modules.target
+    local entry = AI_Config.modules.targettarget
     if type(entry) == "boolean" then
         entry = { enabled = entry }
-        AI_Config.modules.target = entry
+        AI_Config.modules.targettarget = entry
     elseif type(entry) ~= "table" then
         entry = { enabled = false }
-        AI_Config.modules.target = entry
+        AI_Config.modules.targettarget = entry
     end
 
     if entry.enabled == nil then entry.enabled = false end
@@ -374,7 +374,7 @@ local function GetTargetConfig()
     entry.hpBarTextureMode = entry.hpBarTextureMode or "DEFAULT"
     entry.mpBarTextureMode = entry.mpBarTextureMode or "DEFAULT"
 
-    -- Mapping von Config-Feldern (Target_ConfigUI)
+    -- Mapping von Config-Feldern (targettarget_ConfigUI)
     if entry.hpTexture then entry.hpBarTextureMode = entry.hpTexture end
     if entry.mpTexture then entry.mpBarTextureMode = entry.mpTexture end
 
@@ -388,10 +388,10 @@ local function GetTargetConfig()
     if entry.mpUseCustomColor == nil then entry.mpUseCustomColor = false end
     entry.mpCustomColor = entry.mpCustomColor or { r = 0, g = 0, b = 1 }
 
-    -- RaidTarget
+    -- Raidtargettarget
     if entry.raidIconEnabled == nil then entry.raidIconEnabled = true end
 
-    -- Buff-Defaults (Target)
+    -- Buff-Defaults (targettarget)
     entry.buffs = entry.buffs or {}
     local b = entry.buffs
     if b.enabled == nil then b.enabled = true end
@@ -403,7 +403,7 @@ local function GetTargetConfig()
     b.max    = b.max    or 12
     b.perRow = b.perRow or 8
 
-    -- Debuff-Defaults (Target)
+    -- Debuff-Defaults (targettarget)
     entry.debuffs = entry.debuffs or {}
     local d = entry.debuffs
     if d.enabled == nil then d.enabled = true end
@@ -452,13 +452,13 @@ end
 
 
 -- global verfügbar für Config
-_G.GetTargetConfig = GetTargetConfig
+_G.GettargettargetConfig = GettargettargetConfig
 
 function M.ApplyPreset(presetKey)
-    local preset = TARGET_PRESETS[presetKey]
+    local preset = targettarget_PRESETS[presetKey]
     if not preset then return end
 
-    local cfg = GetTargetConfig()
+    local cfg = GettargettargetConfig()
     ApplyPresetToConfig(cfg, preset)
 
     if M.ApplyLayout then
@@ -467,83 +467,83 @@ function M.ApplyPreset(presetKey)
 end
 
 -------------------------------------------------
--- BLIZZARD TARGETFRAME AN / AUS
+-- BLIZZARD targettargetFRAME AN / AUS
 -------------------------------------------------
--- local function MakeBlizzardTargetInvisible()
---     if not TargetFrame then return end
+-- local function MakeBlizzardtargettargetInvisible()
+--     if not targettargetFrame then return end
 
---     TargetFrame:UnregisterAllEvents()
---     TargetFrame:Hide()
---     TargetFrame:SetAlpha(0)
---     TargetFrame:EnableMouse(false)
+--     targettargetFrame:UnregisterAllEvents()
+--     targettargetFrame:Hide()
+--     targettargetFrame:SetAlpha(0)
+--     targettargetFrame:EnableMouse(false)
 
---     if TargetFrameTextureFrame then TargetFrameTextureFrame:Hide() end
---     if TargetFrame.healthbar then TargetFrame.healthbar:Hide() end
---     if TargetFrame.manabar then TargetFrame.manabar:Hide() end
+--     if targettargetFrameTextureFrame then targettargetFrameTextureFrame:Hide() end
+--     if targettargetFrame.healthbar then targettargetFrame.healthbar:Hide() end
+--     if targettargetFrame.manabar then targettargetFrame.manabar:Hide() end
 -- end
 
--- local function RestoreBlizzardTarget()
---     if not TargetFrame then return end
+-- local function RestoreBlizzardtargettarget()
+--     if not targettargetFrame then return end
 
---     TargetFrame:SetAlpha(1)
---     TargetFrame:Show()
---     TargetFrame:EnableMouse(true)
+--     targettargetFrame:SetAlpha(1)
+--     targettargetFrame:Show()
+--     targettargetFrame:EnableMouse(true)
 
---     if TargetFrame.healthbar and TargetFrame.healthbar.TextString then
---         TargetFrame.healthbar.TextString:Show()
+--     if targettargetFrame.healthbar and targettargetFrame.healthbar.TextString then
+--         targettargetFrame.healthbar.TextString:Show()
 --     end
---     if TargetFrame.manabar and TargetFrame.manabar.TextString then
---         TargetFrame.manabar.TextString:Show()
+--     if targettargetFrame.manabar and targettargetFrame.manabar.TextString then
+--         targettargetFrame.manabar.TextString:Show()
 --     end
 -- end
 
-local function MakeBlizzardTargetInvisible()
-    if not TargetFrame then return end
+local function MakeBlizzardtargettargetInvisible()
+    if not targettargetFrame then return end
 
     -- Events NICHT anfassen, nur optisch „unsichtbar“ machen
-    TargetFrame:SetAlpha(0)
-    TargetFrame:EnableMouse(false)
-    TargetFrame:Hide()
+    targettargetFrame:SetAlpha(0)
+    targettargetFrame:EnableMouse(false)
+    targettargetFrame:Hide()
 
-    if TargetFrameTextureFrame then
-        TargetFrameTextureFrame:Hide()
+    if targettargetFrameTextureFrame then
+        targettargetFrameTextureFrame:Hide()
     end
-    if TargetFrame.healthbar then
-        TargetFrame.healthbar:Hide()
-        if TargetFrame.healthbar.TextString then
-            TargetFrame.healthbar.TextString:Hide()
+    if targettargetFrame.healthbar then
+        targettargetFrame.healthbar:Hide()
+        if targettargetFrame.healthbar.TextString then
+            targettargetFrame.healthbar.TextString:Hide()
         end
     end
-    if TargetFrame.manabar then
-        TargetFrame.manabar:Hide()
-        if TargetFrame.manabar.TextString then
-            TargetFrame.manabar.TextString:Hide()
+    if targettargetFrame.manabar then
+        targettargetFrame.manabar:Hide()
+        if targettargetFrame.manabar.TextString then
+            targettargetFrame.manabar.TextString:Hide()
         end
     end
 end
 
-local function RestoreBlizzardTarget()
-    if not TargetFrame then return end
+local function RestoreBlizzardtargettarget()
+    if not targettargetFrame then return end
 
-    TargetFrame:Show()
-    TargetFrame:SetAlpha(1)
-    TargetFrame:EnableMouse(true)
+    targettargetFrame:Show()
+    targettargetFrame:SetAlpha(1)
+    targettargetFrame:EnableMouse(true)
 
-    if TargetFrameTextureFrame then
-        TargetFrameTextureFrame:Show()
+    if targettargetFrameTextureFrame then
+        targettargetFrameTextureFrame:Show()
     end
 
-    if TargetFrame.healthbar then
-        TargetFrame.healthbar:Show()
-        if TargetFrame.healthbar.TextString then
-            TargetFrame.healthbar.TextString:Show()
+    if targettargetFrame.healthbar then
+        targettargetFrame.healthbar:Show()
+        if targettargetFrame.healthbar.TextString then
+            targettargetFrame.healthbar.TextString:Show()
         end
     end
 
-    if TargetFrame.manabar then
-        TargetFrame.manabar:Show()
-        if TargetFrame.manabar.TextString then
-            TargetFrame.manabar.TextString:Show()
+    if targettargetFrame.manabar then
+        targettargetFrame.manabar:Show()
+        if targettargetFrame.manabar.TextString then
+            targettargetFrame.manabar.TextString:Show()
         end
     end
 end
@@ -614,7 +614,7 @@ end
 local function ApplyFrameLayout()
     if not frame then return end
 
-    local cfg = GetTargetConfig()
+    local cfg = GettargettargetConfig()
 
     frame:ClearAllPoints()
     frame:SetScale(cfg.scale or 1)
@@ -875,7 +875,7 @@ end
 local function ApplyIconLayout()
     if not frame then return end
 
-    local cfg = GetTargetConfig()
+    local cfg = GettargettargetConfig()
     if not cfg then return end
 
     if not frame.iconFrame then
@@ -932,7 +932,7 @@ end
 local function ApplyBarStyle()
     if not frame then return end
 
-    local cfg = GetTargetConfig()
+    local cfg = GettargettargetConfig()
 
     local hpTexKey = cfg.hpBarTextureMode or cfg.barTextureMode or "DEFAULT"
     local mpTexKey = cfg.mpBarTextureMode or cfg.barTextureMode or "DEFAULT"
@@ -1047,7 +1047,7 @@ local function FormatHPText(unit, mode, hp, hpMax)
         return ""
     end
 
-    local cfg = GetTargetConfig()
+    local cfg = GettargettargetConfig()
     local effectiveMode = (cfg and cfg.hpTextMode) or mode or "BOTH"
 
     if effectiveMode ~= "PERCENT" and effectiveMode ~= "BOTH" then
@@ -1081,7 +1081,7 @@ local function FormatPowerText(unit, mode, pType, p, pMax)
         return ""
     end
 
-    local cfg = GetTargetConfig()
+    local cfg = GettargettargetConfig()
     local effectiveMode = (cfg and cfg.mpTextMode) or mode or "BOTH"
 
     if effectiveMode ~= "PERCENT" and effectiveMode ~= "BOTH" then
@@ -1114,7 +1114,7 @@ end
 local function UpdateStateIcons()
     if not frame then return end
 
-    local cfg = GetTargetConfig()
+    local cfg = GettargettargetConfig()
     if not cfg or not UnitExists(unit) then
         if frame.leaderIcon  then frame.leaderIcon:Hide()  end
         if frame.raidIcon    then frame.raidIcon:Hide()    end
@@ -1131,7 +1131,7 @@ local function UpdateStateIcons()
         end
     end
 
-    -- RaidTarget-Icon
+    -- Raidtargettarget-Icon
     if frame.raidIcon then
         if cfg.raidIconEnabled and GetRaidTargetIndex and SetRaidTargetIconTexture then
             local index = GetRaidTargetIndex(unit)
@@ -1155,7 +1155,7 @@ local function UpdateHealthAndPower()
         return
     end
 
-    local cfg = GetTargetConfig()
+    local cfg = GettargettargetConfig()
 
     -- HP (Midnight: hpMax kann "secret value" sein → nur auf nil prüfen)
     local hp    = UnitHealth(unit)
@@ -1212,13 +1212,13 @@ end
 
 
 -------------------------------------------------
--- BUFFS / DEBUFFS (Target)
+-- BUFFS / DEBUFFS (targettarget)
 -------------------------------------------------
 local function UpdateAuras()
     if not frame then return end
     if not UnitExists(unit) then return end
 
-    local cfg = GetTargetConfig()
+    local cfg = GettargettargetConfig()
     if not cfg then return end
 
     local spacing = 2
@@ -1375,16 +1375,16 @@ end
 -------------------------------------------------
 -- FRAME ERZEUGEN
 -------------------------------------------------
-local function CreateTargetEasyFrame()
+local function CreatetargettargetEasyFrame()
     if frame then return end
 
-    local cfg = GetTargetConfig()
+    local cfg = GettargettargetConfig()
 
-    frame = CreateFrame("Button", "AI_Target_EasyFrame", UIParent, "SecureUnitButtonTemplate")
+    frame = CreateFrame("Button", "AI_targettarget_EasyFrame", UIParent, "SecureUnitButtonTemplate")
     frame:SetFrameStrata("MEDIUM")
 
     frame:SetAttribute("unit", unit)
-    frame:SetAttribute("*type1", "target")
+    frame:SetAttribute("*type1", "targettarget")
     frame:SetAttribute("*type2", "togglemenu")
 
     frame:SetMovable(false)
@@ -1393,8 +1393,8 @@ local function CreateTargetEasyFrame()
     frame:SetHitRectInsets(0, 0, 0, 0)
 
     -- Startposition
-    if TargetFrame then
-        frame:SetPoint("TOPLEFT", TargetFrame, "TOPLEFT", 0, 0)
+    if targettargetFrame then
+        frame:SetPoint("TOPLEFT", targettargetFrame, "TOPLEFT", 0, 0)
     else
         frame:SetPoint(cfg.point or "TOPLEFT", UIParent, cfg.point or "TOPLEFT", cfg.x or 400, cfg.y or -200)
     end
@@ -1415,12 +1415,12 @@ local function CreateTargetEasyFrame()
 
 
     -- Buff-Container
-    frame.buffFrame = CreateFrame("Frame", "AI_Target_BuffFrame", frame)
+    frame.buffFrame = CreateFrame("Frame", "AI_targettarget_BuffFrame", frame)
     frame.buffFrame:SetSize(1, 1)
     frame.buffFrame.icons = {}
 
     -- Debuff-Container
-    frame.debuffFrame = CreateFrame("Frame", "AI_Target_DebuffFrame", frame)
+    frame.debuffFrame = CreateFrame("Frame", "AI_targettarget_DebuffFrame", frame)
     frame.debuffFrame:SetSize(1, 1)
     frame.debuffFrame.icons = {}
 
@@ -1444,11 +1444,11 @@ function M.StartMovingMode()
     end
 
     if not frame then
-        CreateTargetEasyFrame()
+        CreatetargettargetEasyFrame()
     end
     if not frame then return end
 
-    local cfg = GetTargetConfig()
+    local cfg = GettargettargetConfig()
 
     frame:SetMovable(true)
     frame:EnableMouse(true)
@@ -1488,7 +1488,7 @@ function M.StopMovingMode()
 end
 
 function M.ResetPosition()
-    local cfg = GetTargetConfig()
+    local cfg = GettargettargetConfig()
 
     -- Standard-Position (kannst du nach Wunsch anpassen)
     cfg.point = "TOPLEFT"
@@ -1518,16 +1518,16 @@ end
 -- EVENTS
 -------------------------------------------------
 local function OnEvent(self, event, arg1)
-    local cfg = GetTargetConfig()
+    local cfg = GettargettargetConfig()
     if not cfg.enabled then
         if frame then frame:Hide() end
-        RestoreBlizzardTarget()
+        RestoreBlizzardtargettarget()
         return
     end
 
     if event == "PLAYER_LOGIN" or event == "PLAYER_ENTERING_WORLD" then
-        CreateTargetEasyFrame()
-        MakeBlizzardTargetInvisible()
+        CreatetargettargetEasyFrame()
+        MakeBlizzardtargettargetInvisible()
 
         -- Sichtbarkeit anhand aktuellen Targets setzen
         UpdateVisibility()
@@ -1540,7 +1540,7 @@ local function OnEvent(self, event, arg1)
     elseif event == "PLAYER_TARGET_CHANGED" then
     if UnitExists(unit) then
         if not frame then
-            CreateTargetEasyFrame()
+            CreatetargettargetEasyFrame()
         end
         UpdateAll()
     end
@@ -1599,8 +1599,8 @@ end
 -------------------------------------------------
 function M.Enable()
     EnsureEventFrame()
-    CreateTargetEasyFrame()
-    MakeBlizzardTargetInvisible()
+    CreatetargettargetEasyFrame()
+    MakeBlizzardtargettargetInvisible()
 
     if not frame then return end
 
@@ -1635,7 +1635,7 @@ function M.Disable()
         frame:Hide()
     end
 
-    RestoreBlizzardTarget()
+    RestoreBlizzardtargettarget()
 end
 
 
@@ -1655,13 +1655,13 @@ end
 -- REGISTRIERUNG BEIM CORE
 -------------------------------------------------
 if AI and AI.RegisterFrameType then
-    AI.RegisterFrameType("target", M)
+    AI.RegisterFrameType("targettarget", M)
 else
     local temp = CreateFrame("Frame")
     temp:RegisterEvent("ADDON_LOADED")
     temp:SetScript("OnEvent", function(self, event, addon)
         if addon == "Avoid_Interface_Core" and AI and AI.RegisterFrameType then
-            AI.RegisterFrameType("target", M)
+            AI.RegisterFrameType("targettarget", M)
             self:UnregisterAllEvents()
             self:SetScript("OnEvent", nil)
         end

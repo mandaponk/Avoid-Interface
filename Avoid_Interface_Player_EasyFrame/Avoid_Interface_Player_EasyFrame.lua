@@ -11,7 +11,189 @@ local BAR_TEXTURES = {
     DEFAULT = "Interface\\TARGETINGFRAME\\UI-StatusBar",
     RAID    = "Interface\\RaidFrame\\Raid-Bar-Hp-Fill",
     FLAT    = "Interface\\Buttons\\WHITE8x8",
+
+    -- neue Keys müssen zu texItems.value passen:
+    SMOOTH  = "Interface\\RaidFrame\\Raid-Bar-Resource-Fill",
+    GLASS   = "Interface\\PaperDollInfoFrame\\UI-Character-Skills-Bar",
 }
+
+-- Einfaches Aura-Icon (Buff/Debuff)
+local function CreateAuraIcon(parent)
+    local f = CreateFrame("Button", nil, parent)
+    f:SetSize(20, 20)
+
+    f.icon = f:CreateTexture(nil, "ARTWORK")
+    f.icon:SetAllPoints()
+
+    f.border = f:CreateTexture(nil, "OVERLAY")
+    f.border:SetTexture("Interface\\Buttons\\UI-Debuff-Overlays")
+    f.border:SetAllPoints()
+
+    f.count = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    f.count:SetPoint("BOTTOMRIGHT", -1, 1)
+
+    return f
+end
+
+-- Wrapper für Buffs – arbeitet mit C_UnitAuras (Midnight) oder fällt auf UnitBuff zurück
+local function GetBuffInfo(unit, index)
+    if C_UnitAuras then
+        local data
+
+        -- neuere API-Varianten, je nach Client
+        if C_UnitAuras.GetBuffDataByIndex then
+            data = C_UnitAuras.GetBuffDataByIndex(unit, index)
+        elseif C_UnitAuras.GetAuraDataByIndex then
+            data = C_UnitAuras.GetAuraDataByIndex(unit, index, "HELPFUL")
+        end
+
+        if data then
+            -- name, icon, count zurückgeben (count = Stacks/Applications)
+            return data.name, data.icon, data.applications or data.charges or data.stackCount
+        end
+    end
+
+    -- Fallback für ältere Clients, wo UnitBuff noch existiert
+    if UnitBuff then
+        return UnitBuff(unit, index)
+    end
+
+    return nil
+end
+
+-- Wrapper für Debuffs – analog, aber HARMFUL
+local function GetDebuffInfo(unit, index)
+    if C_UnitAuras then
+        local data
+
+        if C_UnitAuras.GetDebuffDataByIndex then
+            data = C_UnitAuras.GetDebuffDataByIndex(unit, index)
+        elseif C_UnitAuras.GetAuraDataByIndex then
+            data = C_UnitAuras.GetAuraDataByIndex(unit, index, "HARMFUL")
+        end
+
+        if data then
+            return data.name, data.icon, data.applications or data.charges or data.stackCount
+        end
+    end
+
+    if UnitDebuff then
+        return UnitDebuff(unit, index)
+    end
+
+    return nil
+end
+
+-- Vorgefertigte Layout-Presets für den Playerframe
+local PLAYER_PRESETS = {
+    ["Standard"] = {
+        width  = 260,
+        height = 52,
+
+        showName      = true,
+        showHPText    = true,
+        showMPText    = true,
+        showLevelText = true,
+
+        hpTextMode = "BOTH",   -- dein bisheriger Text-Mode
+        mpTextMode = "BOTH",
+
+        nameSize      = 14,
+        hpTextSize    = 12,
+        mpTextSize    = 12,
+        levelTextSize = 12,
+
+        -- Beispiel-Ausrichtungen (anpassen wie du magst)
+        nameAnchor   = "TOPLEFT",
+        nameXOffset  = 4,
+        nameYOffset  = -4,
+
+        hpTextAnchor = "CENTER",
+        hpTextXOffset = 0,
+        hpTextYOffset = 0,
+
+        mpTextAnchor = "CENTER",
+        mpTextXOffset = 0,
+        mpTextYOffset = -14,
+
+        levelAnchor   = "TOPRIGHT",
+        levelXOffset  = -4,
+        levelYOffset  = -4,
+    },
+
+    ["Kompakt"] = {
+        width  = 220,
+        height = 42,
+
+        showName      = true,
+        showHPText    = true,
+        showMPText    = false,
+        showLevelText = false,
+
+        hpTextMode = "PERCENT",
+
+        nameSize      = 12,
+        hpTextSize    = 11,
+
+        nameAnchor   = "TOPLEFT",
+        nameXOffset  = 4,
+        nameYOffset  = -2,
+
+        hpTextAnchor = "BOTTOMRIGHT",
+        hpTextXOffset = -4,
+        hpTextYOffset = 4,
+    },
+
+    ["Groß & Deutlich"] = {
+        width  = 320,
+        height = 60,
+
+        showName      = true,
+        showHPText    = true,
+        showMPText    = true,
+        showLevelText = true,
+
+        hpTextMode = "BOTH",
+        mpTextMode = "BOTH",
+
+        nameSize      = 16,
+        hpTextSize    = 14,
+        mpTextSize    = 14,
+        levelTextSize = 14,
+    },
+}
+
+local function ApplyPresetToConfig(cfg, preset)
+    for key, value in pairs(preset) do
+        if type(value) == "table" then
+            -- einfache, flache Kopie reicht hier
+            local t = {}
+            for k, v in pairs(value) do
+                t[k] = v
+            end
+            cfg[key] = t
+        else
+            cfg[key] = value
+        end
+    end
+end
+
+function M.GetPresets()
+    return PLAYER_PRESETS
+end
+
+function M.ApplyPreset(presetKey)
+    local preset = PLAYER_PRESETS[presetKey]
+    if not preset then return end
+
+    local cfg = GetPlayerConfig()
+    ApplyPresetToConfig(cfg, preset)
+
+    -- Layout neu anwenden
+    if M.ApplyLayout then
+        M.ApplyLayout()
+    end
+end
 
 -------------------------------------------------
 -- KONFIG / STATE
@@ -31,6 +213,8 @@ local function GetPlayerConfig()
 
     if entry.enabled == nil then entry.enabled = true end
     if entry.movable == nil then entry.movable = false end
+
+    local playerEntry = AI_Config.modules.player
 
     entry.width   = entry.width   or 260
     entry.height  = entry.height  or 60
@@ -61,14 +245,16 @@ local function GetPlayerConfig()
     entry.showLevelText = (entry.showLevelText ~= false)
 
     -- Schriftgrößen
-    entry.nameSize      = entry.nameSize      or 14
-    entry.hpTextSize    = entry.hpTextSize    or 12
-    entry.mpTextSize    = entry.mpTextSize    or 12
-    entry.levelTextSize = entry.levelTextSize or 12
+    -- Eigene Textfarben für Name / HP / Mana / Level
+    entry.nameTextColor  = entry.nameTextColor  or { r = 1, g = 1, b = 1 }
+    entry.hpTextColor    = entry.hpTextColor    or { r = 1, g = 1, b = 1 }
+    entry.mpTextColor    = entry.mpTextColor    or { r = 1, g = 1, b = 1 }
+    entry.levelTextColor = entry.levelTextColor or { r = 1, g = 1, b = 1 }
+
 
     -- Anker
     entry.nameAnchor   = entry.nameAnchor   or "TOPLEFT"
-    entry.hpTextAnchor = entry.hpTextAnchor or "BOTTOMRIGHT"
+    entry.hpTextAnchor = entry.hpTextAnchor or "TOPRIGHT"
     entry.mpTextAnchor = entry.mpTextAnchor or "BOTTOMRIGHT"
     entry.levelAnchor  = entry.levelAnchor  or "BOTTOMLEFT"
 
@@ -108,10 +294,12 @@ local function GetPlayerConfig()
         entry.frameBgMode = "OFF"
     end
 
-    -- Low-HP-Highlight
-    if entry.lowHPHighlightEnabled == nil then
-        entry.lowHPHighlightEnabled = false
-    end
+    -- Textfarben (falls aus Config nicht gesetzt)
+
+    entry.nameTextColor  = entry.nameTextColor  or { r = 1, g = 1, b = 1 }
+    entry.hpTextColor    = entry.hpTextColor    or { r = 1, g = 1, b = 1 }
+    entry.mpTextColor    = entry.mpTextColor    or { r = 1, g = 1, b = 1 }
+    entry.levelTextColor = entry.levelTextColor or { r = 1, g = 1, b = 1 }
 
     -- Icons: Combat / Rest / Leader / RaidTarget
     if entry.combatIconEnabled == nil then entry.combatIconEnabled = true end
@@ -143,11 +331,89 @@ local function GetPlayerConfig()
 
     -- Rahmen
     if entry.borderEnabled == nil then entry.borderEnabled = false end
-
     entry.borderSize = entry.borderSize or 1
+
+    -- -- Rahmen-Stil
+    -- if entry.borderStyle ~= "PIXEL" and entry.borderStyle ~= "TOOLTIP" then
+    --     entry.borderStyle = "PIXEL" -- Standard: alter Pixelrahmen
+    -- end
+
+    -- Buff-Defaults
+    entry.buffs = entry.buffs or {}
+    local b = entry.buffs
+    if b.enabled == nil then b.enabled = true end
+    b.anchor = b.anchor or "TOPLEFT"
+    b.x      = b.x      or 0
+    b.y      = b.y      or 10
+    b.size   = b.size   or 24
+    b.grow   = b.grow   or "RIGHT"  -- RIGHT / LEFT / UP / DOWN
+    b.max    = b.max    or 12
+    b.perRow = b.perRow or 8        -- NEU: Icons pro Reihe
+
+    -- Debuff-Defaults
+    entry.debuffs = entry.debuffs or {}
+    local d = entry.debuffs
+    if d.enabled == nil then d.enabled = true end
+    d.anchor = d.anchor or "TOPLEFT"
+    d.x      = d.x      or 0
+    d.y      = d.y      or -26   -- etwas unter den Buffs
+    d.size   = d.size   or 24
+    d.grow   = d.grow   or "RIGHT"
+    d.max    = d.max    or 12
+    d.perRow = d.perRow or 8     -- NEU: Icons pro Reihe
+
+
+    -- Custom Farben für HP / Mana
+    if entry.hpUseCustomColor == nil then
+        entry.hpUseCustomColor = false
+    end
+    if not entry.hpCustomColor then
+        entry.hpCustomColor = { r = 0, g = 1, b = 0 }  -- Standard: grün
+    end
+
+    if entry.mpUseCustomColor == nil then
+        entry.mpUseCustomColor = false
+    end
+    if not entry.mpCustomColor then
+        entry.mpCustomColor = { r = 0, g = 0, b = 1 }  -- Standard: blau
+    end
+
+    -- Wenn Klassenfarbe aktiv ist, darf Custom HP-Farbe NICHT aktiv sein
+    if entry.hpColorMode == "CLASS" then
+        entry.hpUseCustomColor = false
+    end
+
+        local validBorderStyles = {
+        PIXEL   = true,
+        TOOLTIP = true,
+        DIALOG  = true,
+        THIN    = true,
+        THICK   = true,
+    }
+
+    if not validBorderStyles[entry.borderStyle] then
+        entry.borderStyle = "PIXEL"
+    end
+
+    -- Text-Classcolor-Flags (werden aus Config gesetzt, hier nur Defaults)
+    if entry.nameTextUseClassColor == nil then
+        entry.nameTextUseClassColor = false
+    end
+    if entry.hpTextUseClassColor == nil then
+        entry.hpTextUseClassColor = false
+    end
+    if entry.mpTextUseClassColor == nil then
+        entry.mpTextUseClassColor = false
+    end
+    if entry.levelTextUseClassColor == nil then
+        entry.levelTextUseClassColor = false
+    end
 
     return entry
 end
+
+-- ▼ NEU: lokale Funktion auch als globale verfügbar machen
+_G.GetPlayerConfig = GetPlayerConfig
 
 -------------------------------------------------
 -- BLIZZARD PLAYERFRAME AN / AUS
@@ -192,20 +458,28 @@ function M.StoreCurrentPosition()
     cfg.y = y - uy
 end
 
+-- Frame auf Default-Position zurücksetzen
+function M.ResetPosition()
+    local cfg = GetPlayerConfig()
+
+    -- „Werks“-Position festlegen
+    cfg.x = -300
+    cfg.y = -200
+
+    if frame and UIParent then
+        frame:ClearAllPoints()
+        frame:SetPoint("CENTER", UIParent, "CENTER", cfg.x, cfg.y)
+    end
+end
+
 -------------------------------------------------
 -- TEXTLAYOUT
 -------------------------------------------------
-local function ApplyTextLayout(fs, show, size, anchor, xOff, yOff, bold, shadow)
+local function ApplyTextLayout(fs, show, size, anchor, xOff, yOff, bold, shadow, color)
     if not fs then return end
 
-    if not show then
-        fs:SetText("")
-        fs:Hide()
-        return
-    end
-
-    fs:Show()
-
+    -- Immer zuerst eine gültige Schrift setzen,
+    -- damit SetText niemals auf einer "fontlosen" FontString läuft.
     local baseFont = STANDARD_TEXT_FONT or (GameFontNormal and select(1, GameFontNormal:GetFont()))
     baseFont = baseFont or "Fonts\\FRIZQT__.TTF"
 
@@ -216,17 +490,52 @@ local function ApplyTextLayout(fs, show, size, anchor, xOff, yOff, bold, shadow)
 
     fs:SetFont(baseFont, size or 12, flags)
 
+    if not show then
+        fs:SetText("")
+        fs:Hide()
+        return
+    end
+
+    fs:Show()
+
     if shadow then
         fs:SetShadowOffset(1, -1)
         fs:SetShadowColor(0, 0, 0, 0.9)
     else
         fs:SetShadowOffset(0, 0)
     end
+    
+    if color and color.r and color.g and color.b then
+        fs:SetTextColor(color.r, color.g, color.b, 1)
+    else
+        fs:SetTextColor(1, 1, 1, 1)
+    end
+
 
     fs:ClearAllPoints()
     anchor = anchor or "CENTER"
     fs:SetPoint(anchor, frame, anchor, xOff or 0, yOff or 0)
     fs:SetDrawLayer("OVERLAY", 7)
+end
+
+-- NEU: wählt zwischen Custom-Textfarbe und Klassenfarbe
+local function GetTextColorForElement(cfgColor, useClassColor)
+    -- keine Klassenfarbe -> nimm Config-Farbe oder Weiß
+    if not useClassColor then
+        return cfgColor or { r = 1, g = 1, b = 1 }
+    end
+
+    -- Nur für Spieler: echte Klassenfarbe
+    if UnitIsPlayer(unit) then
+        local _, class = UnitClass(unit)
+        local c = RAID_CLASS_COLORS and RAID_CLASS_COLORS[class]
+        if c then
+            return { r = c.r, g = c.g, b = c.b }
+        end
+    end
+
+    -- Fallback: Custom-Farbe (oder Weiß)
+    return cfgColor or { r = 1, g = 1, b = 1 }
 end
 
 -------------------------------------------------
@@ -332,27 +641,102 @@ local function ApplyFrameLayout()
         frame.iconFrame:SetFrameLevel(baseLevel + 4)
     end
 
+    -- Low-HP- und Dead-Overlay sauber layern
+    if frame.lowHPOverlay then
+        frame.lowHPOverlay:SetDrawLayer("OVERLAY", 1)
+    end
 
-    -- Rahmen anwenden
+    if frame.deadOverlay then
+        frame.deadOverlay:SetDrawLayer("OVERLAY", 2) -- liegt über dem Low-HP-Overlay
+    end
+
+
+    -- Rahmen anwenden (Stil: Pixel vs Tooltip mit runden Ecken)
     if frame.border then
         if cfg.borderEnabled and cfg.borderSize and cfg.borderSize > 0 then
             local size = cfg.borderSize
-            if size < 1 then size = 1 end
+            if size < 1  then size = 1  end
             if size > 16 then size = 16 end
 
-            local bd = frame.border:GetBackdrop() or {}
-            bd.edgeFile = "Interface\\Buttons\\WHITE8x8"
-            bd.edgeSize = size
+            local style = cfg.borderStyle or "PIXEL"
+
+            -- frisches Backdrop bauen, damit nichts vom alten Stil hängen bleibt
+            local bd = {
+                bgFile   = nil,
+                edgeFile = nil,
+                tile     = false,
+                tileSize = 0,
+                edgeSize = 0,
+                insets   = { left = 0, right = 0, top = 0, bottom = 0 },
+            }
+
+            if style == "TOOLTIP" then
+                local edgeSize = math.max(8, math.min(16, size * 2))
+
+                bd.edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border"
+                bd.edgeSize = edgeSize
+                bd.insets   = {
+                    left   = edgeSize * 0.35,
+                    right  = edgeSize * 0.35,
+                    top    = edgeSize * 0.35,
+                    bottom = edgeSize * 0.35,
+                }
+            elseif style == "DIALOG" then
+                bd.edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border"
+                bd.edgeSize = 16
+                bd.insets   = { left = 4, right = 4, top = 4, bottom = 4 }
+
+            elseif style == "THIN" then
+                bd.edgeFile = "Interface\\Buttons\\WHITE8x8"
+                bd.edgeSize = 1
+                bd.insets   = { left = 0, right = 0, top = 0, bottom = 0 }
+
+            elseif style == "THICK" then
+                bd.edgeFile = "Interface\\Buttons\\WHITE8x8"
+                bd.edgeSize = math.max(2, math.min(8, size))
+                bd.insets   = { left = 0, right = 0, top = 0, bottom = 0 }
+            else
+                -- Klassischer Pixelframe
+                bd.edgeFile = "Interface\\Buttons\\WHITE8x8"
+                bd.edgeSize = size
+                bd.insets   = { left = 0, right = 0, top = 0, bottom = 0 }
+            end
+
             frame.border:SetBackdrop(bd)
             frame.border:SetBackdropBorderColor(1, 1, 1, 1)
             frame.border:Show()
+
+            -- Hintergrund passend zum Rahmen-Stil einrücken
+            if frame.bg then
+                frame.bg:ClearAllPoints()
+                if style == "TOOLTIP" then
+                    frame.bg:SetPoint("TOPLEFT", frame, "TOPLEFT", 4, -4)
+                    frame.bg:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -4, 4)
+                else
+                    -- Pixelframe: Hintergrund fast bis an den Rand
+                    frame.bg:SetPoint("TOPLEFT", frame, "TOPLEFT", 1, -1)
+                    frame.bg:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -1, 1)
+                end
+            end
         else
+            -- Rahmen aus → Border verstecken, Background vollflächig
             frame.border:Hide()
+            if frame.bg then
+                frame.bg:ClearAllPoints()
+                frame.bg:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
+                frame.bg:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
+            end
         end
     end
 
-    -- Texte ausrichten
+        -- Texte ausrichten
     local e = cfg
+
+    -- endgültige Textfarben je nach Classcolor-Flag bestimmen
+    local nameColor  = GetTextColorForElement(e.nameTextColor,  e.nameTextUseClassColor)
+    local hpColor    = GetTextColorForElement(e.hpTextColor,    e.hpTextUseClassColor)
+    local mpColor    = GetTextColorForElement(e.mpTextColor,    e.mpTextUseClassColor)
+    local levelColor = GetTextColorForElement(e.levelTextColor, e.levelTextUseClassColor)
 
     ApplyTextLayout(
         frame.nameText,
@@ -362,7 +746,8 @@ local function ApplyFrameLayout()
         e.nameXOffset,
         e.nameYOffset,
         e.nameBold,
-        e.nameShadow
+        e.nameShadow,
+        nameColor
     )
 
     ApplyTextLayout(
@@ -373,7 +758,8 @@ local function ApplyFrameLayout()
         e.hpTextXOffset,
         e.hpTextYOffset,
         e.hpTextBold,
-        e.hpTextShadow
+        e.hpTextShadow,
+        hpColor
     )
 
     ApplyTextLayout(
@@ -384,7 +770,8 @@ local function ApplyFrameLayout()
         e.mpTextXOffset,
         e.mpTextYOffset,
         e.mpTextBold,
-        e.mpTextShadow
+        e.mpTextShadow,
+        mpColor
     )
 
     ApplyTextLayout(
@@ -395,8 +782,11 @@ local function ApplyFrameLayout()
         e.levelXOffset,
         e.levelYOffset,
         e.levelBold,
-        e.levelShadow
+        e.levelShadow,
+        levelColor
     )
+
+
 end
 
 local function ApplyIconLayout()
@@ -468,7 +858,7 @@ local function ApplyBarStyle()
     frame.healthBar:SetStatusBarTexture(hpTexPath)
     frame.powerBar:SetStatusBarTexture(mpTexPath)
 
-    -- HP-Farbe (Balken)
+        -- HP-Farbe (Balken)
     local hr, hg, hb = 0, 1, 0
     if cfg.hpColorMode == "CLASS" then
         local _, class = UnitClass(unit)
@@ -477,13 +867,22 @@ local function ApplyBarStyle()
             hr, hg, hb = c.r, c.g, c.b
         end
     end
+
+    -- Custom-Farbe überschreibt Klassen-/Standardfarbe
+    if cfg.hpUseCustomColor and cfg.hpCustomColor then
+        hr = cfg.hpCustomColor.r or hr
+        hg = cfg.hpCustomColor.g or hg
+        hb = cfg.hpCustomColor.b or hb
+    end
+
     frame.healthBar:SetStatusBarColor(hr, hg, hb, 1)
-    
-    -- Basisfarbe für spätere Low-HP-Highlights merken
+
+    -- Basisfarbe für spätere Highlights merken
     frame.hpBaseColor = frame.hpBaseColor or {}
     frame.hpBaseColor.r = hr
     frame.hpBaseColor.g = hg
     frame.hpBaseColor.b = hb
+
 
     -- Basisfarbe speichern, damit wir sie beim Low-HP-Highlight wiederherstellen können
     frame.hpBaseColor = frame.hpBaseColor or {}
@@ -491,13 +890,21 @@ local function ApplyBarStyle()
     frame.hpBaseColor.g = hg
     frame.hpBaseColor.b = hb
 
-    -- Mana-Farbe (Balken) per PowerBarColor
+        -- Mana-Farbe (Balken) per PowerBarColor
     local pType = UnitPowerType(unit)
     local info  = PowerBarColor and PowerBarColor[pType] or PowerBarColor and PowerBarColor["MANA"]
     local pr, pg, pb = 0, 0, 1
     if info then
         pr, pg, pb = info.r, info.g, info.b
     end
+
+    -- Custom-Farbe für Mana / Power
+    if cfg.mpUseCustomColor and cfg.mpCustomColor then
+        pr = cfg.mpCustomColor.r or pr
+        pg = cfg.mpCustomColor.g or pg
+        pb = cfg.mpCustomColor.b or pb
+    end
+
     frame.powerBar:SetStatusBarColor(pr, pg, pb, 1)
 
     -- Hintergrundfarben (Frame + Bar-BGs)
@@ -561,6 +968,7 @@ local function FormatHPText(unit, mode, hp, hpMax)
     return string.format("%s / %s", hpStr, maxStr)
 end
 
+
 local function FormatPowerText(unit, mode, pType, p, pMax)
     if not p or not pMax or pMax <= 0 then
         return ""
@@ -594,11 +1002,38 @@ end
 -- WERTE-UPDATE
 -------------------------------------------------
 
--- Low-HP-Highlight: nutzt UnitHealthPercent statt hp/hpMax (Midnight-safe)
--- Midnight: HP ist ein Secret Value → wir dürfen nicht rechnen oder vergleichen.
--- Deshalb ist Low-HP-Highlight aktuell deaktiviert.
-local function UpdateHPHighlight(hp, hpMax)
-    -- absichtlich leer
+-------------------------------------------------
+-- LOW-HP OVERLAY
+-- Midnight: HP/Prozent sind "secret values".
+-- Wir dürfen NICHT vergleichen oder rechnen.
+-- Deshalb kann hier KEINE echte Low-HP-Logik
+-- implementiert werden. Stattdessen:
+-- Wenn Option an -> Overlay an (reiner Style-Effekt).
+-------------------------------------------------
+local function UpdateLowHPOverlay()
+    if not frame or not frame.lowHPOverlay then return end
+
+    local cfg = GetPlayerConfig()
+    if cfg.lowHPHighlightEnabled then
+        frame.lowHPOverlay:Show()
+    else
+        frame.lowHPOverlay:Hide()
+    end
+end
+
+
+-- Dead/Ghost Overlay aktualisieren (nutzt nur bool-APIs, kein Secret-Mathe)
+local function UpdateDeadGhostOverlay()
+    if not frame or not frame.deadOverlay then return end
+
+    local isDead  = UnitIsDead(unit)
+    local isGhost = UnitIsGhost(unit)
+
+    if isDead or isGhost then
+        frame.deadOverlay:Show()
+    else
+        frame.deadOverlay:Hide()
+    end
 end
 
 -- Absorb / HealAbsorb Bars aktualisieren (Midnight-safe, keine Secret-Mathe)
@@ -652,7 +1087,6 @@ local function UpdateAbsorbBars(hpMax)
     end
 end
 
-
 local function UpdateHealthAndPower()
     if not frame or not frame:IsShown() then return end
     if not UnitExists(unit) then
@@ -675,11 +1109,6 @@ local function UpdateHealthAndPower()
 
     -- Absorb / HealAbsorb Bars an die aktuelle MaxHP anpassen
     UpdateAbsorbBars(hpMax)
-
-
-    -- Low-HP-Färbung anwenden (falls aktiviert)
-    UpdateHPHighlight(hp, hpMax)
-
 
     -- Power
     local pType    = UnitPowerType(unit)
@@ -730,7 +1159,161 @@ local function UpdateHealthAndPower()
     else
         frame.levelText:SetText("")
     end
+
+    -- Low-HP Overlay aktualisieren
+    UpdateLowHPOverlay()
 end
+
+-------------------------------------------------
+-- BUFFS / DEBUFFS
+-------------------------------------------------
+local function UpdateAuras()
+    if not frame then return end
+    if not UnitExists(unit) then return end
+
+    local cfg = GetPlayerConfig()
+    if not cfg then return end
+
+    local spacing = 2
+
+    -------------------------------------------------
+    -- BUFFS
+    -------------------------------------------------
+    local b = cfg.buffs
+    if frame.buffFrame and b and b.enabled then
+        local container = frame.buffFrame
+        container:Show()
+        container:ClearAllPoints()
+        container:SetPoint(b.anchor or "TOPLEFT", frame, b.anchor or "TOPLEFT", b.x or 0, b.y or 0)
+        container.icons = container.icons or {}
+
+        local maxBuffs = b.max or 0
+        local perRow   = b.perRow or maxBuffs
+        if perRow < 1 then perRow = 1 end
+        if perRow > maxBuffs then perRow = maxBuffs end
+
+        for i = 1, maxBuffs do
+            local name, icon, count = GetBuffInfo(unit, i)
+            local btn = container.icons[i]
+
+            if name then
+                if not btn then
+                    btn = CreateAuraIcon(container)
+                    container.icons[i] = btn
+                end
+
+                btn.icon:SetTexture(icon)
+                btn.count:SetText("")
+
+                local size = b.size or 24
+                btn:SetSize(size, size)
+
+                -- Positionierung mit Zeilen/Spalten
+                local idx    = i - 1
+                local col    = idx % perRow
+                local row    = math.floor(idx / perRow)
+                local grow   = b.grow or "RIGHT"
+                local x, y   = 0, 0
+                local step   = size + spacing
+
+                if grow == "RIGHT" then
+                    x = col * step
+                    y = -row * step
+                elseif grow == "LEFT" then
+                    x = -col * step
+                    y = -row * step
+                elseif grow == "UP" then
+                    x = col * step
+                    y = row * step
+                elseif grow == "DOWN" then
+                    x = col * step
+                    y = -row * step
+                else
+                    x = col * step
+                    y = -row * step
+                end
+
+                btn:ClearAllPoints()
+                btn:SetPoint("TOPLEFT", container, "TOPLEFT", x, y)
+
+                btn:Show()
+            elseif btn then
+                btn:Hide()
+            end
+        end
+    elseif frame.buffFrame then
+        frame.buffFrame:Hide()
+    end
+
+    -------------------------------------------------
+    -- DEBUFFS
+    -------------------------------------------------
+    local d = cfg.debuffs
+    if frame.debuffFrame and d and d.enabled then
+        local container = frame.debuffFrame
+        container:Show()
+        container:ClearAllPoints()
+        container:SetPoint(d.anchor or "TOPLEFT", frame, d.anchor or "TOPLEFT", d.x or 0, d.y or 0)
+        container.icons = container.icons or {}
+
+        local maxDebuffs = d.max or 0
+        local perRow     = d.perRow or maxDebuffs
+        if perRow < 1 then perRow = 1 end
+        if perRow > maxDebuffs then perRow = maxDebuffs end
+
+        for i = 1, maxDebuffs do
+            local name, icon, count = GetDebuffInfo(unit, i)
+            local btn = container.icons[i]
+
+            if name then
+                if not btn then
+                    btn = CreateAuraIcon(container)
+                    container.icons[i] = btn
+                end
+
+                btn.icon:SetTexture(icon)
+                btn.count:SetText("")
+
+                local size = d.size or 24
+                btn:SetSize(size, size)
+
+                local idx    = i - 1
+                local col    = idx % perRow
+                local row    = math.floor(idx / perRow)
+                local grow   = d.grow or "RIGHT"
+                local x, y   = 0, 0
+                local step   = size + spacing
+
+                if grow == "RIGHT" then
+                    x = col * step
+                    y = -row * step
+                elseif grow == "LEFT" then
+                    x = -col * step
+                    y = -row * step
+                elseif grow == "UP" then
+                    x = col * step
+                    y = row * step
+                elseif grow == "DOWN" then
+                    x = col * step
+                    y = -row * step
+                else
+                    x = col * step
+                    y = -row * step
+                end
+
+                btn:ClearAllPoints()
+                btn:SetPoint("TOPLEFT", container, "TOPLEFT", x, y)
+
+                btn:Show()
+            elseif btn then
+                btn:Hide()
+            end
+        end
+    elseif frame.debuffFrame then
+        frame.debuffFrame:Hide()
+    end
+end
+
 
 local function UpdateStateIcons()
     if not frame then return end
@@ -800,7 +1383,13 @@ local function CreatePlayerEasyFrame()
     frame:SetAttribute("unit", unit)
     frame:SetAttribute("*type1", "target")
     frame:SetAttribute("*type2", "togglemenu")
+    
+    -- NEU: Klicks überhaupt annehmen
+    frame:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 
+    -- optional, aber sinnvoll: kompletter Frame klickbar
+    frame:SetHitRectInsets(0, 0, 0, 0)
+    
     frame:SetMovable(true)
     frame:EnableMouse(true)
     frame:RegisterForDrag("LeftButton")
@@ -818,20 +1407,53 @@ local function CreatePlayerEasyFrame()
     frame.bg = frame:CreateTexture(nil, "BACKGROUND")
     frame.bg:SetAllPoints(frame)
     frame.bg:SetColorTexture(0.05, 0.05, 0.05, 0.8)
-
-
+    
+    -- Hintergrund etwas einrücken, damit er nicht hinter den runden Ecken „rausguckt“
+    frame.bg:ClearAllPoints()
+    frame.bg:SetPoint("TOPLEFT", frame, "TOPLEFT", 4, -4)
+    frame.bg:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -4, 4)
+    
     frame.border = CreateFrame("Frame", nil, frame, "BackdropTemplate")
     frame.border:SetAllPoints()
+
+    -- neutrales Start-Backdrop, Stil wird in ApplyFrameLayout gesetzt
     frame.border:SetBackdrop({
-        edgeFile = "Interface\\Buttons\\WHITE8x8",
+        edgeFile = "Interface\\Buttons\\WHITE8x8", -- einfacher Pixelrahmen als Basis
         edgeSize = 1,
+        insets   = { left = 0, right = 0, top = 0, bottom = 0 },
     })
     frame.border:SetBackdropBorderColor(1, 1, 1, 1)
+    frame.border:Hide()
 
-        frame.healthBar = CreateFrame("StatusBar", nil, frame)
+    -- frame.border = CreateFrame("Frame", nil, frame, "BackdropTemplate")
+    -- frame.border:SetAllPoints()
+
+    -- frame.border:SetBackdrop({
+    --     edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+    --     edgeSize = 12,  -- Startwert, wird später über Config überschrieben
+    --     insets  = { left = 4, right = 4, top = 4, bottom = 4 },
+    -- })
+    -- frame.border:SetBackdropBorderColor(1, 1, 1, 1)
+
+    frame.healthBar = CreateFrame("StatusBar", nil, frame)
     frame.healthBarBG = frame.healthBar:CreateTexture(nil, "BACKGROUND")
     frame.healthBarBG:SetAllPoints()
     frame.healthBarBG:SetColorTexture(0, 0, 0, 0.7)
+
+    -- Low-HP-Overlay (rote Tönung über der HP-Bar)
+    frame.lowHPOverlay = frame.healthBar:CreateTexture(nil, "ARTWORK")
+    frame.lowHPOverlay:SetAllPoints(frame.healthBar)
+    frame.lowHPOverlay:SetColorTexture(1, 0, 0, 0.30)
+    frame.lowHPOverlay:Hide()
+
+    frame.powerBar = CreateFrame("StatusBar", nil, frame)
+
+
+    -- Overlay für Dead/Ghost: dunkler Schleier über der HP-Bar
+    frame.deadOverlay = frame.healthBar:CreateTexture(nil, "OVERLAY")
+    frame.deadOverlay:SetAllPoints(frame.healthBar)
+    frame.deadOverlay:SetColorTexture(0, 0, 0, 0.55) -- leicht abdunkeln
+    frame.deadOverlay:Hide()
 
     -- Absorb-Bar (Shields) – dunkler Overlay von rechts nach links
     frame.absorbBar = CreateFrame("StatusBar", nil, frame.healthBar)
@@ -857,7 +1479,6 @@ local function CreatePlayerEasyFrame()
     frame.powerBarBG = frame.powerBar:CreateTexture(nil, "BACKGROUND")
     frame.powerBarBG:SetAllPoints()
     frame.powerBarBG:SetColorTexture(0, 0, 0, 0.7)
-
 
     frame.textFrame = CreateFrame("Frame", nil, frame)
     frame.textFrame:SetAllPoints()
@@ -900,6 +1521,15 @@ local function CreatePlayerEasyFrame()
     frame.raidIcon:SetTexture("Interface\\TARGETINGFRAME\\UI-RaidTargetingIcons")
     frame.raidIcon:Hide()
 
+    -- Buff-Container
+    frame.buffFrame = CreateFrame("Frame", "AI_Player_BuffFrame", frame)
+    frame.buffFrame:SetSize(1, 1)
+    frame.buffFrame.icons = {}
+
+    -- Debuff-Container
+    frame.debuffFrame = CreateFrame("Frame", "AI_Player_DebuffFrame", frame)
+    frame.debuffFrame:SetSize(1, 1)
+    frame.debuffFrame.icons = {}
 
     -- Startposition
     frame:SetPoint("CENTER", UIParent, "CENTER", cfg.x or -300, cfg.y or -200)
@@ -945,9 +1575,12 @@ local function OnEvent(self, event, arg1)
          or event == "PARTY_LEADER_CHANGED"
          or event == "RAID_TARGET_UPDATE") then
         UpdateStateIcons()
-
+    elseif (event == "PLAYER_DEAD" or event == "PLAYER_ALIVE" or event == "PLAYER_UNGHOST") then
+        UpdateDeadGhostOverlay()
     elseif event == "UNIT_LEVEL" and arg1 == unit then
         UpdateHealthAndPower()
+    elseif event == "UNIT_AURA" and arg1 == unit then
+        UpdateAuras()
     end
 
 end
@@ -964,10 +1597,15 @@ local function EnsureEventFrame()
     eventFrame:RegisterUnitEvent("UNIT_MAXPOWER", unit)
     eventFrame:RegisterUnitEvent("UNIT_DISPLAYPOWER", unit)
     eventFrame:RegisterUnitEvent("UNIT_LEVEL", unit)
+    eventFrame:RegisterUnitEvent("UNIT_AURA", unit)
 
     -- NEU: Absorb-Events
     eventFrame:RegisterUnitEvent("UNIT_ABSORB_AMOUNT_CHANGED", unit)
     eventFrame:RegisterUnitEvent("UNIT_HEAL_ABSORB_AMOUNT_CHANGED", unit)
+    
+    eventFrame:RegisterEvent("PLAYER_DEAD")
+    eventFrame:RegisterEvent("PLAYER_ALIVE")
+    eventFrame:RegisterEvent("PLAYER_UNGHOST")
 
     eventFrame:SetScript("OnEvent", OnEvent)
 
@@ -998,6 +1636,7 @@ function M.Enable()
     ApplyIconLayout()
     UpdateHealthAndPower()
     UpdateStateIcons()
+    UpdateAuras()
     if frame then frame:Show() end
 end
 
@@ -1016,6 +1655,7 @@ function M.Refresh()
     ApplyIconLayout()
     UpdateHealthAndPower()
     UpdateStateIcons()
+    UpdateAuras()
     if frame then frame:Show() end
 end
 
@@ -1057,6 +1697,7 @@ function M.ApplyLayout()
     ApplyIconLayout()
     UpdateHealthAndPower()
     UpdateStateIcons()
+    UpdateAuras()
 end
 
 -------------------------------------------------

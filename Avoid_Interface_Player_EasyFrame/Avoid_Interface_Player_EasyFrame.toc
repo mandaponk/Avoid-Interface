@@ -7,3 +7,4 @@
 ## RequiredDeps: Avoid_Interface_Core
 
 Avoid_Interface_Player_EasyFrame.lua
+Avoid_Interface_Player_ConfigUI.lua

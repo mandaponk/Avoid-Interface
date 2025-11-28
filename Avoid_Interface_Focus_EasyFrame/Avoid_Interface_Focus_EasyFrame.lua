@@ -1,8 +1,8 @@
--- Avoid_Interface_Target_EasyFrame.lua
--- EasyFrame für "target" – ersetzt den Blizzard TargetFrame optisch
+-- Avoid_Interface_focus_EasyFrame.lua
+-- EasyFrame für "focus" – ersetzt den Blizzard FocusFrame optisch
 
 local M    = {}
-local unit = "target"
+local unit = "Focus"
 
 local frame
 local eventFrame
@@ -86,8 +86,8 @@ local function GetDebuffInfo(unit, index)
 end
 
 
--- Vorgefertigte Layout-Presets für den Target-Frame
-local TARGET_PRESETS = {
+-- Vorgefertigte Layout-Presets für den focus-Frame
+local FOCUS_PRESETS = {
     ["Standard"] = {
         width  = 260,
         height = 52,
@@ -179,42 +179,42 @@ local function ApplyPresetToConfig(cfg, preset)
 end
 
 function M.GetPresets()
-    return TARGET_PRESETS
+    return FOCUS_PRESETS
 end
 
 -------------------------------------------------
 -- CONFIG
 -------------------------------------------------
-local function GetTargetConfig()
+local function GetFocusConfig()
     AI_Config = AI_Config or {}
     AI_Config.modules = AI_Config.modules or {}
 
-    local entry = AI_Config.modules.target
+    local entry = AI_Config.modules.focus
     if type(entry) == "boolean" then
         entry = { enabled = entry }
-        AI_Config.modules.target = entry
+        AI_Config.modules.focus = entry
     elseif type(entry) ~= "table" then
         entry = { enabled = false }
-        AI_Config.modules.target = entry
+        AI_Config.modules.focus = entry
     end
 
     if entry.enabled == nil then entry.enabled = false end
 
-    local playerEntry = AI_Config.modules.player
+    local focusEntry = AI_Config.modules.focus
 
     -- Abmessungen / Position / Ratio / Alpha
-    if type(playerEntry) == "table" then
-        entry.width  = entry.width  or playerEntry.width  or 260
-        entry.height = entry.height or playerEntry.height or 52
+    if type(focusEntry) == "table" then
+        entry.width  = entry.width  or focusEntry.width  or 260
+        entry.height = entry.height or focusEntry.height or 52
 
-        entry.scale = entry.scale or playerEntry.scale or 1
+        entry.scale = entry.scale or focusEntry.scale or 1
 
-        entry.point = entry.point or playerEntry.point or "TOPLEFT"
-        entry.x     = entry.x     or (playerEntry.x or 300)
-        entry.y     = entry.y     or (playerEntry.y or -200)
+        entry.point = entry.point or focusEntry.point or "TOPLEFT"
+        entry.x     = entry.x     or (focusEntry.x or 300)
+        entry.y     = entry.y     or (focusEntry.y or -200)
 
-        entry.hpRatio = entry.hpRatio or playerEntry.hpRatio or 0.66
-        entry.alpha   = entry.alpha   or playerEntry.alpha   or 1
+        entry.hpRatio = entry.hpRatio or focusEntry.hpRatio or 0.66
+        entry.alpha   = entry.alpha   or focusEntry.alpha   or 1
     else
         entry.width  = entry.width  or 260
         entry.height = entry.height or 52
@@ -232,52 +232,52 @@ local function GetTargetConfig()
     if entry.manaEnabled == nil then entry.manaEnabled = true end
 
     -- Text-Flags
-    if type(playerEntry) == "table" then
+    if type(focusEntry) == "table" then
         -- Nur NUR dann Default setzen, wenn der Wert NIL ist.
         if entry.showName == nil then
-            if playerEntry.showName ~= nil then
-                entry.showName = playerEntry.showName
+            if focusEntry.showName ~= nil then
+                entry.showName = focusEntry.showName
             else
                 entry.showName = true
             end
         end
 
         if entry.showHPText == nil then
-            if playerEntry.showHPText ~= nil then
-                entry.showHPText = playerEntry.showHPText
+            if focusEntry.showHPText ~= nil then
+                entry.showHPText = focusEntry.showHPText
             else
                 entry.showHPText = true
             end
         end
 
         if entry.showMPText == nil then
-            if playerEntry.showMPText ~= nil then
-                entry.showMPText = playerEntry.showMPText
+            if focusEntry.showMPText ~= nil then
+                entry.showMPText = focusEntry.showMPText
             else
                 entry.showMPText = true
             end
         end
 
         if entry.showLevelText == nil then
-            if playerEntry.showLevelText ~= nil then
-                entry.showLevelText = playerEntry.showLevelText
+            if focusEntry.showLevelText ~= nil then
+                entry.showLevelText = focusEntry.showLevelText
             else
                 entry.showLevelText = true
             end
         end
 
-        entry.nameSize      = entry.nameSize      or playerEntry.nameSize      or 14
-        entry.hpTextSize    = entry.hpTextSize    or playerEntry.hpTextSize    or 12
-        entry.mpTextSize    = entry.mpTextSize    or playerEntry.mpTextSize    or 12
-        entry.levelTextSize = entry.levelTextSize or playerEntry.levelTextSize or 12
+        entry.nameSize      = entry.nameSize      or focusEntry.nameSize      or 14
+        entry.hpTextSize    = entry.hpTextSize    or focusEntry.hpTextSize    or 12
+        entry.mpTextSize    = entry.mpTextSize    or focusEntry.mpTextSize    or 12
+        entry.levelTextSize = entry.levelTextSize or focusEntry.levelTextSize or 12
 
-        entry.nameAnchor    = entry.nameAnchor    or playerEntry.nameAnchor    or "TOPLEFT"
-        entry.hpTextAnchor  = entry.hpTextAnchor  or playerEntry.hpTextAnchor  or "CENTER"
-        entry.mpTextAnchor  = entry.mpTextAnchor  or playerEntry.mpTextAnchor  or "CENTER"
-        entry.levelAnchor   = entry.levelAnchor   or playerEntry.levelAnchor   or "TOPRIGHT"
+        entry.nameAnchor    = entry.nameAnchor    or focusEntry.nameAnchor    or "TOPLEFT"
+        entry.hpTextAnchor  = entry.hpTextAnchor  or focusEntry.hpTextAnchor  or "CENTER"
+        entry.mpTextAnchor  = entry.mpTextAnchor  or focusEntry.mpTextAnchor  or "CENTER"
+        entry.levelAnchor   = entry.levelAnchor   or focusEntry.levelAnchor   or "TOPRIGHT"
 
     else
-        -- Ohne Player-Entry: einfache Defaults, aber FALSE respektieren
+        -- Ohne focus-Entry: einfache Defaults, aber FALSE respektieren
         if entry.showName == nil then
             entry.showName = true
         end
@@ -340,11 +340,11 @@ local function GetTargetConfig()
     end
     
     -- Textfarben (falls aus Config nicht gesetzt)
-    if type(playerEntry) == "table" then
-        entry.nameTextColor  = entry.nameTextColor  or playerEntry.nameTextColor  or { r = 1, g = 1, b = 1 }
-        entry.hpTextColor    = entry.hpTextColor    or playerEntry.hpTextColor    or { r = 1, g = 1, b = 1 }
-        entry.mpTextColor    = entry.mpTextColor    or playerEntry.mpTextColor    or { r = 1, g = 1, b = 1 }
-        entry.levelTextColor = entry.levelTextColor or playerEntry.levelTextColor or { r = 1, g = 1, b = 1 }
+    if type(focusEntry) == "table" then
+        entry.nameTextColor  = entry.nameTextColor  or focusEntry.nameTextColor  or { r = 1, g = 1, b = 1 }
+        entry.hpTextColor    = entry.hpTextColor    or focusEntry.hpTextColor    or { r = 1, g = 1, b = 1 }
+        entry.mpTextColor    = entry.mpTextColor    or focusEntry.mpTextColor    or { r = 1, g = 1, b = 1 }
+        entry.levelTextColor = entry.levelTextColor or focusEntry.levelTextColor or { r = 1, g = 1, b = 1 }
     else
         entry.nameTextColor  = entry.nameTextColor  or { r = 1, g = 1, b = 1 }
         entry.hpTextColor    = entry.hpTextColor    or { r = 1, g = 1, b = 1 }
@@ -367,14 +367,14 @@ local function GetTargetConfig()
     entry.raidIconYOffset    = entry.raidIconYOffset    or 10
 
     -- Bar-Texturen / HP-Farbmodus / Custom-Farben
-    if type(playerEntry) == "table" then
-        entry.hpBarTextureMode = entry.hpBarTextureMode or playerEntry.hpBarTextureMode or "DEFAULT"
-        entry.mpBarTextureMode = entry.mpBarTextureMode or playerEntry.mpBarTextureMode or "DEFAULT"
+    if type(focusEntry) == "table" then
+        entry.hpBarTextureMode = entry.hpBarTextureMode or focusEntry.hpBarTextureMode or "DEFAULT"
+        entry.mpBarTextureMode = entry.mpBarTextureMode or focusEntry.mpBarTextureMode or "DEFAULT"
     end
     entry.hpBarTextureMode = entry.hpBarTextureMode or "DEFAULT"
     entry.mpBarTextureMode = entry.mpBarTextureMode or "DEFAULT"
 
-    -- Mapping von Config-Feldern (Target_ConfigUI)
+    -- Mapping von Config-Feldern (focus_ConfigUI)
     if entry.hpTexture then entry.hpBarTextureMode = entry.hpTexture end
     if entry.mpTexture then entry.mpBarTextureMode = entry.mpTexture end
 
@@ -388,10 +388,10 @@ local function GetTargetConfig()
     if entry.mpUseCustomColor == nil then entry.mpUseCustomColor = false end
     entry.mpCustomColor = entry.mpCustomColor or { r = 0, g = 0, b = 1 }
 
-    -- RaidTarget
+    -- Raidfocus
     if entry.raidIconEnabled == nil then entry.raidIconEnabled = true end
 
-    -- Buff-Defaults (Target)
+    -- Buff-Defaults (focus)
     entry.buffs = entry.buffs or {}
     local b = entry.buffs
     if b.enabled == nil then b.enabled = true end
@@ -403,7 +403,7 @@ local function GetTargetConfig()
     b.max    = b.max    or 12
     b.perRow = b.perRow or 8
 
-    -- Debuff-Defaults (Target)
+    -- Debuff-Defaults (focus)
     entry.debuffs = entry.debuffs or {}
     local d = entry.debuffs
     if d.enabled == nil then d.enabled = true end
@@ -452,13 +452,13 @@ end
 
 
 -- global verfügbar für Config
-_G.GetTargetConfig = GetTargetConfig
+_G.GetFocusConfig = GetFocusConfig
 
 function M.ApplyPreset(presetKey)
-    local preset = TARGET_PRESETS[presetKey]
+    local preset = FOCUS_PRESETS[presetKey]
     if not preset then return end
 
-    local cfg = GetTargetConfig()
+    local cfg = GetFocusConfig()
     ApplyPresetToConfig(cfg, preset)
 
     if M.ApplyLayout then
@@ -466,84 +466,54 @@ function M.ApplyPreset(presetKey)
     end
 end
 
--------------------------------------------------
--- BLIZZARD TARGETFRAME AN / AUS
--------------------------------------------------
--- local function MakeBlizzardTargetInvisible()
---     if not TargetFrame then return end
 
---     TargetFrame:UnregisterAllEvents()
---     TargetFrame:Hide()
---     TargetFrame:SetAlpha(0)
---     TargetFrame:EnableMouse(false)
-
---     if TargetFrameTextureFrame then TargetFrameTextureFrame:Hide() end
---     if TargetFrame.healthbar then TargetFrame.healthbar:Hide() end
---     if TargetFrame.manabar then TargetFrame.manabar:Hide() end
--- end
-
--- local function RestoreBlizzardTarget()
---     if not TargetFrame then return end
-
---     TargetFrame:SetAlpha(1)
---     TargetFrame:Show()
---     TargetFrame:EnableMouse(true)
-
---     if TargetFrame.healthbar and TargetFrame.healthbar.TextString then
---         TargetFrame.healthbar.TextString:Show()
---     end
---     if TargetFrame.manabar and TargetFrame.manabar.TextString then
---         TargetFrame.manabar.TextString:Show()
---     end
--- end
-
-local function MakeBlizzardTargetInvisible()
-    if not TargetFrame then return end
+local function MakeBlizzardfocusInvisible()
+    if not FocusFrame then return end
 
     -- Events NICHT anfassen, nur optisch „unsichtbar“ machen
-    TargetFrame:SetAlpha(0)
-    TargetFrame:EnableMouse(false)
-    TargetFrame:Hide()
+    FocusFrame:SetAlpha(0)
+    FocusFrame:EnableMouse(false)
+    FocusFrame:Hide()
 
-    if TargetFrameTextureFrame then
-        TargetFrameTextureFrame:Hide()
+    if FocusFrameTextureFrame then
+        FocusFrameTextureFrame:Hide()
     end
-    if TargetFrame.healthbar then
-        TargetFrame.healthbar:Hide()
-        if TargetFrame.healthbar.TextString then
-            TargetFrame.healthbar.TextString:Hide()
+    if FocusFrame.healthbar then
+        FocusFrame.healthbar:Hide()
+        if FocusFrame.healthbar.TextString then
+            FocusFrame.healthbar.TextString:Hide()
         end
     end
-    if TargetFrame.manabar then
-        TargetFrame.manabar:Hide()
-        if TargetFrame.manabar.TextString then
-            TargetFrame.manabar.TextString:Hide()
+    if FocusFrame.manabar then
+        FocusFrame.manabar:Hide()
+        if FocusFrame.manabar.TextString then
+            FocusFrame.manabar.TextString:Hide()
         end
     end
 end
 
-local function RestoreBlizzardTarget()
-    if not TargetFrame then return end
+local function RestoreBlizzardfocus()
+    if not FocusFrame then return end
 
-    TargetFrame:Show()
-    TargetFrame:SetAlpha(1)
-    TargetFrame:EnableMouse(true)
+    FocusFrame:Show()
+    FocusFrame:SetAlpha(1)
+    FocusFrame:EnableMouse(true)
 
-    if TargetFrameTextureFrame then
-        TargetFrameTextureFrame:Show()
+    if FocusFrameTextureFrame then
+        FocusFrameTextureFrame:Show()
     end
 
-    if TargetFrame.healthbar then
-        TargetFrame.healthbar:Show()
-        if TargetFrame.healthbar.TextString then
-            TargetFrame.healthbar.TextString:Show()
+    if FocusFrame.healthbar then
+        FocusFrame.healthbar:Show()
+        if FocusFrame.healthbar.TextString then
+            FocusFrame.healthbar.TextString:Show()
         end
     end
 
-    if TargetFrame.manabar then
-        TargetFrame.manabar:Show()
-        if TargetFrame.manabar.TextString then
-            TargetFrame.manabar.TextString:Show()
+    if FocusFrame.manabar then
+        FocusFrame.manabar:Show()
+        if FocusFrame.manabar.TextString then
+            FocusFrame.manabar.TextString:Show()
         end
     end
 end
@@ -614,7 +584,7 @@ end
 local function ApplyFrameLayout()
     if not frame then return end
 
-    local cfg = GetTargetConfig()
+    local cfg = GetFocusConfig()
 
     frame:ClearAllPoints()
     frame:SetScale(cfg.scale or 1)
@@ -875,7 +845,7 @@ end
 local function ApplyIconLayout()
     if not frame then return end
 
-    local cfg = GetTargetConfig()
+    local cfg = GetFocusConfig()
     if not cfg then return end
 
     if not frame.iconFrame then
@@ -932,7 +902,7 @@ end
 local function ApplyBarStyle()
     if not frame then return end
 
-    local cfg = GetTargetConfig()
+    local cfg = GetFocusConfig()
 
     local hpTexKey = cfg.hpBarTextureMode or cfg.barTextureMode or "DEFAULT"
     local mpTexKey = cfg.mpBarTextureMode or cfg.barTextureMode or "DEFAULT"
@@ -961,9 +931,9 @@ local function ApplyBarStyle()
         if UnitIsDead(unit) or UnitIsGhost(unit) then
             hr, hg, hb = 0.5, 0.5, 0.5
         else
-            if UnitIsFriend("player", unit) then
+            if UnitIsFriend("focus", unit) then
                 hr, hg, hb = 0, 0.9, 0
-            elseif UnitIsEnemy("player", unit) then
+            elseif UnitIsEnemy("focus", unit) then
                 hr, hg, hb = 0.9, 0.1, 0.1
             else
                 hr, hg, hb = 0.8, 0.8, 0.1
@@ -1047,7 +1017,7 @@ local function FormatHPText(unit, mode, hp, hpMax)
         return ""
     end
 
-    local cfg = GetTargetConfig()
+    local cfg = GetFocusConfig()
     local effectiveMode = (cfg and cfg.hpTextMode) or mode or "BOTH"
 
     if effectiveMode ~= "PERCENT" and effectiveMode ~= "BOTH" then
@@ -1081,7 +1051,7 @@ local function FormatPowerText(unit, mode, pType, p, pMax)
         return ""
     end
 
-    local cfg = GetTargetConfig()
+    local cfg = GetFocusConfig()
     local effectiveMode = (cfg and cfg.mpTextMode) or mode or "BOTH"
 
     if effectiveMode ~= "PERCENT" and effectiveMode ~= "BOTH" then
@@ -1114,10 +1084,10 @@ end
 local function UpdateStateIcons()
     if not frame then return end
 
-    local cfg = GetTargetConfig()
+    local cfg = GetFocusConfig()
     if not cfg or not UnitExists(unit) then
-        if frame.leaderIcon  then frame.leaderIcon:Hide()  end
-        if frame.raidIcon    then frame.raidIcon:Hide()    end
+        if frame.leaderIcon then frame.leaderIcon:Hide() end
+        if frame.raidIcon  then frame.raidIcon:Hide()  end
         return
     end
 
@@ -1131,12 +1101,22 @@ local function UpdateStateIcons()
         end
     end
 
-    -- RaidTarget-Icon
+    -- RaidTarget-Icon (Secret-Value-safe)
     if frame.raidIcon then
         if cfg.raidIconEnabled and GetRaidTargetIndex and SetRaidTargetIconTexture then
-            local index = GetRaidTargetIndex(unit)
-            if index then
-                SetRaidTargetIconTexture(frame.raidIcon, index)
+            -- Standard: erstmal verstecken
+            frame.raidIcon:Hide()
+
+            -- Secret Value NICHT direkt prüfen, nur durchreichen
+            local ok, index = pcall(GetRaidTargetIndex, unit)
+            if not ok then
+                -- API hat selbst schon gemeckert, wir machen lieber gar nix
+                return
+            end
+
+            -- Wenn SetRaidTargetIconTexture mit dem Index klappt, zeigen wir das Icon
+            local ok2 = pcall(SetRaidTargetIconTexture, frame.raidIcon, index)
+            if ok2 then
                 frame.raidIcon:Show()
             else
                 frame.raidIcon:Hide()
@@ -1147,6 +1127,7 @@ local function UpdateStateIcons()
     end
 end
 
+
 local function UpdateHealthAndPower()
     if not frame then return end
 
@@ -1155,7 +1136,7 @@ local function UpdateHealthAndPower()
         return
     end
 
-    local cfg = GetTargetConfig()
+    local cfg = GetFocusConfig()
 
     -- HP (Midnight: hpMax kann "secret value" sein → nur auf nil prüfen)
     local hp    = UnitHealth(unit)
@@ -1212,13 +1193,13 @@ end
 
 
 -------------------------------------------------
--- BUFFS / DEBUFFS (Target)
+-- BUFFS / DEBUFFS (focus)
 -------------------------------------------------
 local function UpdateAuras()
     if not frame then return end
     if not UnitExists(unit) then return end
 
-    local cfg = GetTargetConfig()
+    local cfg = GetFocusConfig()
     if not cfg then return end
 
     local spacing = 2
@@ -1375,16 +1356,16 @@ end
 -------------------------------------------------
 -- FRAME ERZEUGEN
 -------------------------------------------------
-local function CreateTargetEasyFrame()
+local function CreatefocusEasyFrame()
     if frame then return end
 
-    local cfg = GetTargetConfig()
+    local cfg = GetFocusConfig()
 
-    frame = CreateFrame("Button", "AI_Target_EasyFrame", UIParent, "SecureUnitButtonTemplate")
+    frame = CreateFrame("Button", "AI_focus_EasyFrame", UIParent, "SecureUnitButtonTemplate")
     frame:SetFrameStrata("MEDIUM")
 
     frame:SetAttribute("unit", unit)
-    frame:SetAttribute("*type1", "target")
+    frame:SetAttribute("*type1", "focus")
     frame:SetAttribute("*type2", "togglemenu")
 
     frame:SetMovable(false)
@@ -1393,8 +1374,8 @@ local function CreateTargetEasyFrame()
     frame:SetHitRectInsets(0, 0, 0, 0)
 
     -- Startposition
-    if TargetFrame then
-        frame:SetPoint("TOPLEFT", TargetFrame, "TOPLEFT", 0, 0)
+    if FocusFrame then
+        frame:SetPoint("TOPLEFT", FocusFrame, "TOPLEFT", 0, 0)
     else
         frame:SetPoint(cfg.point or "TOPLEFT", UIParent, cfg.point or "TOPLEFT", cfg.x or 400, cfg.y or -200)
     end
@@ -1403,24 +1384,30 @@ local function CreateTargetEasyFrame()
     frame.iconFrame = CreateFrame("Frame", nil, frame)
     frame.iconFrame:SetAllPoints(frame)
 
+    -- Ganz wichtig: Framelevel hochsetzen, damit der Container über allem liegt
+    frame.iconFrame:SetFrameLevel(frame:GetFrameLevel() + 10)
+
     -- Leader-Icon
-    frame.leaderIcon = frame.iconFrame:CreateTexture(nil, "OVERLAY")
+    frame.leaderIcon = frame.iconFrame:CreateTexture(nil, "OVERLAY", nil, 5)
     frame.leaderIcon:SetTexture("Interface\\GroupFrame\\UI-Group-LeaderIcon")
     frame.leaderIcon:Hide()
 
     -- RaidTarget-Icon
-    frame.raidIcon = frame.iconFrame:CreateTexture(nil, "OVERLAY")
-    frame.raidIcon:SetTexture("Interface\\TARGETINGFRAME\\UI-RaidTargetingIcons")
+    frame.raidIcon = frame.iconFrame:CreateTexture(nil, "OVERLAY", nil, 5)
+    frame.raidIcon:SetSize(24, 24)
+    frame.raidIcon:SetPoint("CENTER", frame.iconFrame, "TOP", 0, 0)
+    frame.raidIcon:SetTexture("Interface\\TargetingFrame\\UI-RaidTargetingIcons")
     frame.raidIcon:Hide()
 
 
+
     -- Buff-Container
-    frame.buffFrame = CreateFrame("Frame", "AI_Target_BuffFrame", frame)
+    frame.buffFrame = CreateFrame("Frame", "AI_focus_BuffFrame", frame)
     frame.buffFrame:SetSize(1, 1)
     frame.buffFrame.icons = {}
 
     -- Debuff-Container
-    frame.debuffFrame = CreateFrame("Frame", "AI_Target_DebuffFrame", frame)
+    frame.debuffFrame = CreateFrame("Frame", "AI_focus_DebuffFrame", frame)
     frame.debuffFrame:SetSize(1, 1)
     frame.debuffFrame.icons = {}
 
@@ -1444,11 +1431,11 @@ function M.StartMovingMode()
     end
 
     if not frame then
-        CreateTargetEasyFrame()
+        CreatefocusEasyFrame()
     end
     if not frame then return end
 
-    local cfg = GetTargetConfig()
+    local cfg = GetFocusConfig()
 
     frame:SetMovable(true)
     frame:EnableMouse(true)
@@ -1488,7 +1475,7 @@ function M.StopMovingMode()
 end
 
 function M.ResetPosition()
-    local cfg = GetTargetConfig()
+    local cfg = GetFocusConfig()
 
     -- Standard-Position (kannst du nach Wunsch anpassen)
     cfg.point = "TOPLEFT"
@@ -1518,40 +1505,44 @@ end
 -- EVENTS
 -------------------------------------------------
 local function OnEvent(self, event, arg1)
-    local cfg = GetTargetConfig()
+    local cfg = GetFocusConfig()
     if not cfg.enabled then
         if frame then frame:Hide() end
-        RestoreBlizzardTarget()
+        RestoreBlizzardfocus()
         return
     end
 
+    -- Login / Welt betreten -> Frame einmal erzeugen
     if event == "PLAYER_LOGIN" or event == "PLAYER_ENTERING_WORLD" then
-        CreateTargetEasyFrame()
-        MakeBlizzardTargetInvisible()
+        CreatefocusEasyFrame()
+        MakeBlizzardfocusInvisible()
 
-        -- Sichtbarkeit anhand aktuellen Targets setzen
+        -- Sichtbarkeit anhand aktuellen focus setzen
         UpdateVisibility()
 
-        -- Wenn schon ein Target existiert (z.B. nach ReloadUI), alles updaten
+        -- Wenn schon ein focus existiert (z.B. nach ReloadUI), alles updaten
         if UnitExists(unit) then
             UpdateAll()
         end
 
-    elseif event == "PLAYER_TARGET_CHANGED" then
-    if UnitExists(unit) then
-        if not frame then
-            CreateTargetEasyFrame()
+    -- Focus wurde gesetzt oder gelöscht
+    elseif event == "PLAYER_FOCUS_CHANGED" then
+        if UnitExists(unit) then
+            if not frame then
+                CreatefocusEasyFrame()
+                MakeBlizzardfocusInvisible()
+            end
+            UpdateAll()
         end
-        UpdateAll()
-    end
-    -- Kein eigenes Show/Hide mehr.
-    -- RegisterUnitWatch regelt die Sichtbarkeit (auch im Kampf, bei Tod usw.)
 
+        -- Auch hier Sichtbarkeit aktualisieren
+        UpdateVisibility()
 
     elseif event == "UNIT_HEALTH" or event == "UNIT_MAXHEALTH" then
         if arg1 == unit then
             UpdateHealthAndPower()
         end
+
     elseif event == "UNIT_POWER_UPDATE" or event == "UNIT_MAXPOWER" then
         if arg1 == unit then
             UpdateHealthAndPower()
@@ -1562,7 +1553,7 @@ local function OnEvent(self, event, arg1)
             UpdateAuras()
         end
 
-    elseif event == "RAID_TARGET_UPDATE" then
+    elseif event == "RAID_TARGET_UPDATE"  or  event == "UnitIsGroupLeader" then
         UpdateStateIcons()
 
     elseif event == "UNIT_FLAGS" then
@@ -1579,10 +1570,8 @@ local function EnsureEventFrame()
     eventFrame = CreateFrame("Frame")
     eventFrame:RegisterEvent("PLAYER_LOGIN")
     eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
-    eventFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
+    eventFrame:RegisterEvent("PLAYER_FOCUS_CHANGED")
     eventFrame:RegisterEvent("RAID_TARGET_UPDATE")
-    eventFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
-    eventFrame:RegisterEvent("PARTY_LEADER_CHANGED")
     eventFrame:RegisterUnitEvent("UNIT_FLAGS", unit)
 
     eventFrame:RegisterUnitEvent("UNIT_HEALTH",        unit)
@@ -1599,8 +1588,8 @@ end
 -------------------------------------------------
 function M.Enable()
     EnsureEventFrame()
-    CreateTargetEasyFrame()
-    MakeBlizzardTargetInvisible()
+    CreatefocusEasyFrame()
+    MakeBlizzardfocusInvisible()
 
     if not frame then return end
 
@@ -1611,11 +1600,11 @@ function M.Enable()
     end
 
     if UnitExists(unit) then
-        -- Es gibt bereits ein Target → sofort anzeigen + updaten
+        -- Es gibt bereits ein focus → sofort anzeigen + updaten
         frame:Show()
         UpdateAll()
     else
-        -- Kein Target → Frame verstecken, wartet auf PLAYER_TARGET_CHANGED
+        -- Kein focus → Frame verstecken, wartet auf focus_focus_CHANGED
         frame:Hide()
     end
 end
@@ -1635,7 +1624,7 @@ function M.Disable()
         frame:Hide()
     end
 
-    RestoreBlizzardTarget()
+    RestoreBlizzardfocus()
 end
 
 
@@ -1655,13 +1644,13 @@ end
 -- REGISTRIERUNG BEIM CORE
 -------------------------------------------------
 if AI and AI.RegisterFrameType then
-    AI.RegisterFrameType("target", M)
+    AI.RegisterFrameType("focus", M)
 else
     local temp = CreateFrame("Frame")
     temp:RegisterEvent("ADDON_LOADED")
     temp:SetScript("OnEvent", function(self, event, addon)
         if addon == "Avoid_Interface_Core" and AI and AI.RegisterFrameType then
-            AI.RegisterFrameType("target", M)
+            AI.RegisterFrameType("focus", M)
             self:UnregisterAllEvents()
             self:SetScript("OnEvent", nil)
         end
